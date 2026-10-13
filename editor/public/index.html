@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="editor-token" content="__EDITOR_TOKEN__">
+<title>Editor MiniChef</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/css/editor.css">
+<link rel="stylesheet" href="/css/canvas.css">
+<link rel="stylesheet" href="/css/inspetor.css">
+<script type="module" src="/js/main.js"></script>
+</head>
+<body>
+<header class="mc-topo">
+  <div class="mc-marca">
+    <strong>Editor MiniChef</strong>
+    <span class="mc-escopo" title="O executor só grava dentro de minichef--frontend">edita só minichef--frontend</span>
+  </div>
+  <section id="mc-paginas" class="mc-topo-paginas" aria-label="Páginas"></section>
+  <section id="mc-site" class="mc-topo-site" aria-label="Rodar site"></section>
+</header>
+
+<div class="mc-corpo">
+  <nav id="mc-ferramentas" class="mc-ferramentas" aria-label="Ferramentas"></nav>
+
+  <main class="mc-area-palco">
+    <div id="mc-controles-palco" class="mc-controles-palco"></div>
+    <!-- Estrutura interna do palco pertence a canvas.js -->
+    <div id="mc-palco" class="mc-palco">
+      <iframe id="mc-quadro" sandbox="allow-same-origin" title="Página em edição"></iframe>
+      <div id="mc-sobreposicao" class="mc-sobreposicao"></div>
+    </div>
+    <div id="mc-vazio" class="mc-vazio" hidden>
+      <p>Nenhuma página aberta. Crie ou abra uma página na barra superior.</p>
+    </div>
+  </main>
+
+  <aside id="mc-inspetor" class="mc-inspetor" aria-label="Propriedades"></aside>
+</div>
+
+<div id="mc-avisos" class="mc-avisos" role="status" aria-live="polite"></div>
+</body>
+</html>
