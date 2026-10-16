@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="64" viewBox="0 0 720 64" fill="#14452f">
+  <!-- Silhuetas de restaurante (32x32 cada). Uma faixa de 720 px que se repete na horizontal. -->
+  <defs>
+    <path id="chapeu" d="M9 27v-6.5A6.5 6.5 0 0 1 10 8a6 6 0 0 1 12 0 6.5 6.5 0 0 1 1 12.5V27zM9 29h14v2H9z"/>
+    <path id="panela" d="M5 13h22v10a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4zM1 15h4v3H1zM27 15h4v3h-4zM7 9h18v3H7zM14 6h4v3h-4z"/>
+    <path id="garfo" d="M11 2h1.6v8h1.2V2h1.6v8h1.2V2H18v9a4 4 0 0 1-3 3.9V30h-2V14.9A4 4 0 0 1 11 11z"/>
+    <path id="faca" d="M13 2c5 2 7 8 5 15h-5zM13 18h5v12h-5z"/>
+    <g id="colher"><ellipse cx="16" cy="8" rx="5" ry="7"/><rect x="15" y="14" width="2" height="16" rx="1"/></g>
+    <path id="cenoura" d="M16 30 9 12a7 7 0 0 1 14 0zM12.5 8 16 1l3.5 7z"/>
+    <path id="peixe" d="M3 16c5-7 13-7 18 0-5 7-13 7-18 0zM20 16l9-7v14z"/>
+    <g id="pessoa"><circle cx="16" cy="9" r="5"/><path d="M5 30c0-8 5-12 11-12s11 4 11 12z"/></g>
+    <path id="taca" d="M10 2h12c0 8-2 12-6 12S10 10 10 2zM15 14h2v12h-2zM10 28h12v2H10z"/>
+    <path id="maca" d="M16 11c-4-3-11-1-11 7 0 6 4 11 8 11 2 0 2-1 3-1s1 1 3 1c4 0 8-5 8-11 0-8-7-10-11-7zM17 9c0-3 2-6 5-6 0 3-2 6-5 6z"/>
+    <path id="pizza" d="M16 30 4 8c8-5 16-5 24 0zM3 5c9-5 17-5 26 0v2C20 3 12 3 3 7z"/>
+    <path id="bolo" d="M4 18h24v10H4zM6 12h20v4H6zM15 5h2v7h-2z"/>
+  </defs>
+  <g>
+    <use href="#chapeu" transform="translate(6 4) rotate(-15 11 11) scale(0.7 0.7) translate(0 0)"/>
+    <use href="#garfo" transform="translate(44 34) rotate(20 11 11) scale(-0.7 0.7) translate(-32 0)"/>
+    <use href="#panela" transform="translate(80 8) rotate(8 11 11) scale(0.7 0.7) translate(0 0)"/>
+    <use href="#cenoura" transform="translate(118 36) rotate(-40 11 11) scale(-0.7 0.7) translate(-32 0)"/>
+    <use href="#pessoa" transform="translate(152 2) rotate(0 11 11) scale(-0.7 0.7) translate(-32 0)"/>
+    <use href="#faca" transform="translate(188 32) rotate(35 11 11) scale(0.7 0.7) translate(0 0)"/>
+    <use href="#pizza" transform="translate(222 6) rotate(-25 11 11) scale(-0.7 0.7) translate(-32 0)"/>
+    <use href="#taca" transform="translate(258 38) rotate(12 11 11) scale(0.7 0.7) translate(0 0)"/>
+    <use href="#peixe" transform="translate(292 4) rotate(15 11 11) scale(-0.7 0.7) translate(-32 0)"/>
+    <use href="#colher" transform="translate(330 34) rotate(-30 11 11) scale(0.7 0.7) translate(0 0)"/>
+    <use href="#maca" transform="translate(366 8) rotate(22 11 11) scale(-0.7 0.7) translate(-32 0)"/>
+    <use href="#bolo" transform="translate(402 38) rotate(-10 11 11) scale(0.7 0.7) translate(0 0)"/>
+    <use href="#chapeu" transform="translate(438 2) rotate(18 11 11) scale(-0.7 0.7) translate(-32 0)"/>
+    <use href="#garfo" transform="translate(474 32) rotate(-35 11 11) scale(0.7 0.7) translate(0 0)"/>
+    <use href="#pessoa" transform="translate(510 10) rotate(-8 11 11) scale(0.7 0.7) translate(0 0)"/>
+    <use href="#cenoura" transform="translate(546 36) rotate(50 11 11) scale(0.7 0.7) translate(0 0)"/>
+    <use href="#taca" transform="translate(582 4) rotate(-18 11 11) scale(-0.7 0.7) translate(-32 0)"/>
+    <use href="#panela" transform="translate(616 34) rotate(-12 11 11) scale(-0.7 0.7) translate(-32 0)"/>
+    <use href="#faca" transform="translate(654 6) rotate(-30 11 11) scale(-0.7 0.7) translate(-32 0)"/>
+    <use href="#peixe" transform="translate(690 36) rotate(-20 11 11) scale(0.7 0.7) translate(0 0)"/>
+  </g>
+</svg>

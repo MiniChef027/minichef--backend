@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>MiniChef</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/tema.js"></script>
+  <script src="js/dados.js" defer></script>
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#conteudo">Ir para o conteúdo</a>
+  <header class="topbar">
+    <button class="icon-btn" id="abrir-menu" aria-label="Abrir menu" aria-controls="menu" aria-expanded="false">☰</button>
+    <a class="brand" href="#inicio">MiniChef<span class="brand-dot">.</span></a>
+    <span class="topbar-caption">Sua cozinha, bem organizada.</span>
+    <span class="demo-pill">Demonstração</span>
+  </header>
+  <nav class="sidebar" id="menu" aria-label="Menu principal">
+    <div class="sidebar-head"><span class="brand">MiniChef.</span><button class="icon-btn" id="fechar-menu" aria-label="Fechar menu">×</button></div>
+    <p class="nav-label">MINHA COZINHA</p>
+    <ul>
+      <li><a href="#inicio" data-nav><span aria-hidden="true">⌂</span> Início</a></li>
+      <li><a href="#receitas" data-nav><span aria-hidden="true">▤</span> Receitas</a></li>
+      <li><a href="#favoritos" data-nav><span aria-hidden="true">♡</span> Favoritos</a></li>
+      <li><a href="#calculadora" data-nav><span aria-hidden="true">±</span> Calculadora de porções</a></li>
+      <li><a href="#planner" data-nav><span aria-hidden="true">▦</span> Planner semanal</a></li>
+      <li><a href="#compras" data-nav><span aria-hidden="true">✓</span> Lista de compras</a></li>
+      <li><a href="#despensa" data-nav><span aria-hidden="true">▥</span> Despensa <span class="nav-count" id="alert-count" hidden></span></a></li>
+      <li><a href="#alertas" data-nav><span aria-hidden="true">⚑</span> Alertas de validade</a></li>
+    </ul>
+    <p class="nav-label">ADMINISTRAÇÃO · DEMO</p>
+    <ul class="nav-secondary"><li><a href="#aprovacao" data-nav><span aria-hidden="true">◎</span> Aprovar receitas</a></li></ul>
+    <div class="sidebar-foot"><a class="btn" href="#entrar" data-nav>Entrar</a><a class="btn btn-ghost" href="#cadastro" data-nav>Criar conta</a><a class="about-link" href="#sobre" data-nav>Sobre o MiniChef</a></div>
+  </nav>
+  <div class="scrim" id="scrim" hidden></div>
+  <main id="conteudo" tabindex="-1">
+    <div class="demo-notice"><strong>Espaço de demonstração</strong><span>Receitas de exemplo e alterações salvas apenas neste navegador. Contas ainda indisponíveis.</span></div>
+    <p id="storage-warning" class="notice warning" role="status" hidden></p>
+    <section class="page" id="inicio">
+      <div class="hero"><p class="eyebrow">MENOS IMPROVISO. MAIS SABOR.</p><h1>O que vamos cozinhar hoje?</h1><p class="lead">Encontre uma receita, organize a semana e aproveite melhor os ingredientes que você já tem.</p><div class="actions"><a class="btn" href="#receitas">Explorar receitas <span aria-hidden="true">→</span></a><a class="btn btn-ghost" href="#planner">Planejar minha semana</a></div></div>
+      <div class="stats" id="home-stats"></div>
+      <div class="section-heading"><div><p class="eyebrow">PARA O DIA A DIA</p><h2>Comece com o básico bem feito</h2></div><a href="#receitas">Ver todas as receitas →</a></div>
+      <div class="grid" id="home-recipes"></div>
+      <div class="panel home-reminder"><div><h2>Uma despensa sem esquecimentos</h2><p class="muted" id="home-pantry">Cadastre seus ingredientes e acompanhe as datas de validade.</p></div><a class="btn btn-ghost" href="#despensa">Organizar despensa</a></div>
+    </section>
+    <section class="page" id="receitas" hidden>
+      <div class="page-heading"><div><p class="eyebrow">SEU CADERNO DE COZINHA</p><h1>Receitas</h1><p class="lead">Ideias simples para todas as refeições.</p></div><a class="btn" href="#nova-receita">+ Nova receita</a></div>
+      <div class="segmented" role="group" aria-label="Coleção de receitas"><button type="button" data-collection="published" aria-pressed="true">Explorar receitas</button><button type="button" data-collection="mine" aria-pressed="false">Minhas receitas</button></div>
+      <form id="filters" class="panel filters" role="search">
+        <label class="search-field">Buscar receita<input name="query" type="search" placeholder="O que você quer preparar?" maxlength="150"></label>
+        <label>Ingrediente<input name="ingredient" type="search" placeholder="Ex.: arroz, ovo…" maxlength="100"></label>
+        <label>Refeição<select name="meal"><option value="">Todas as refeições</option></select></label>
+        <label>Tempo máximo<select name="time"><option value="">Qualquer tempo</option><option value="15">Até 15 minutos</option><option value="30">Até 30 minutos</option><option value="60">Até 1 hora</option></select></label>
+        <label>Origem<input name="origin" type="search" placeholder="Ex.: brasileira" maxlength="60"></label>
+        <label>Finalidade<select name="purpose"><option value="">Todas</option><option value="dia a dia">Dia a dia</option><option value="festa">Festa</option><option value="nutrição">Nutrição</option></select></label>
+        <button class="btn btn-ghost" type="reset">Limpar filtros</button>
+      </form>
+      <p class="muted" id="recipe-count" role="status"></p><div class="grid" id="recipe-list"></div>
+    </section>
+    <section class="page" id="nova-receita" hidden>
+      <a class="back-link" href="#receitas">← Voltar às receitas</a><h1 id="recipe-form-title">Nova receita</h1><p class="lead">Compartilhe seu jeito de cozinhar. Receitas enviadas passam por análise.</p>
+      <form id="recipe-form" class="panel form wide">
+        <div class="form-grid"><label class="span-2">Nome da receita<input name="nome" required maxlength="150" placeholder="Ex.: bolo de cenoura da família"></label><label>Porções da receita base<input name="porcao_padrao" type="number" min="1" max="10000" step="1" value="4" required></label><label>Tempo de preparo (minutos)<input name="tempo_medio_gasto_min" type="number" min="1" max="10080" step="1" value="30" required></label><label>Refeição<select name="refeicao_recomendada" required></select></label><label>Nacionalidade / origem<input name="nacionalidade" maxlength="60" placeholder="Ex.: brasileira"></label><label>Finalidade<select name="finalidade"><option value="dia a dia">Dia a dia</option><option value="festa">Festa</option><option value="nutrição">Nutrição</option></select></label></div>
+        <fieldset><legend>Ingredientes</legend><p class="note">Informe as quantidades para a receita base. Opcionais ficam fora da lista de compras.</p><div id="ingredient-rows"></div><button class="btn btn-ghost" id="add-ingredient" type="button">+ Adicionar ingrediente</button></fieldset>
+        <label>Modo de preparo<textarea name="modo_preparo" rows="6" maxlength="10000" required placeholder="Descreva uma etapa por linha."></textarea></label>
+        <p class="status" role="status"></p><div class="actions"><button class="btn" type="submit" value="submit">Enviar para análise</button><button class="btn btn-ghost" type="submit" value="draft">Salvar rascunho</button><a class="text-link" href="#receitas">Cancelar</a></div>
+      </form>
+    </section>
+    <section class="page" id="detalhe" hidden><a class="back-link" href="#receitas">← Voltar às receitas</a><h1>Detalhes da receita</h1><div id="recipe-detail"></div></section>
+    <section class="page" id="favoritos" hidden><p class="eyebrow">PARA COZINHAR DE NOVO</p><h1>Receitas favoritas</h1><p class="lead">As receitas que você guardou neste navegador.</p><div class="grid" id="favorite-list"></div></section>
+    <section class="page" id="aprovacao" hidden><p class="eyebrow">ADMINISTRAÇÃO</p><h1>Aprovação de receitas</h1><p class="lead">Revise ingredientes e preparo antes de publicar.</p><div class="notice">Prévia do administrador: as decisões abaixo afetam somente os exemplos deste navegador. O acesso administrativo real depende da autenticação do servidor.</div><div class="section-heading"><h2>Receitas aguardando análise</h2><span class="badge" id="pending-count"></span></div><div class="stack" id="approval-list"></div><h2>Últimas decisões locais</h2><div id="approval-history" class="stack"></div></section>
+    <section class="page" id="calculadora" hidden><p class="eyebrow">NA MEDIDA CERTA</p><h1>Calculadora de porções</h1><p class="lead">Ajuste os ingredientes para a quantidade de pessoas à mesa.</p><form class="panel form" id="calculator-form"><label>Receita<select id="calculator-recipe" name="receita" required></select></label><label>Quantas porções você quer preparar?<input id="calculator-portions" name="porcoes" type="number" min="1" max="10000" step="1" value="4" required></label><button class="btn" type="submit">Calcular porções</button></form><div id="calculator-result" class="result" aria-live="polite"></div></section>
+    <section class="page" id="planner" hidden><div class="page-heading"><div><p class="eyebrow">SUA SEMANA À MESA</p><h1>Planner semanal</h1><p class="lead">Escolha suas refeições e deixe as compras por nossa conta.</p></div><a class="btn" href="#compras">Ver lista de compras →</a></div><div class="week-control"><button class="btn btn-ghost" type="button" data-week="-7" aria-label="Semana anterior">←</button><h2 id="week-label"></h2><button class="btn btn-ghost" type="button" data-week="7" aria-label="Próxima semana">→</button><button class="btn btn-ghost" type="button" id="current-week">Esta semana</button></div>
+      <form id="planner-form" class="panel form"><h2>Adicionar refeição</h2><div class="form-grid"><label>Dia<select name="dia"></select></label><label>Refeição<select name="refeicao"></select></label><label>Receita<select name="receita_id" required></select></label><label>Porções<input name="porcoes_desejadas" type="number" value="2" min="1" max="10000" step="1" required></label></div><button class="btn" type="submit">+ Adicionar ao planner</button></form><div class="week-grid" id="week-grid"></div>
+    </section>
+    <section class="page" id="compras" hidden><div class="page-heading"><div><p class="eyebrow">TUDO EM UMA LISTA</p><h1>Lista de compras</h1><p class="lead" id="shopping-week"></p></div><a class="btn btn-ghost" href="#planner">Editar planejamento</a></div><p class="notice">Lista atualizada a partir do planner. Ingredientes opcionais não entram; o estoque da despensa não é descontado.</p><div class="panel"><p id="shopping-progress" role="status"></p><div id="shopping-list"></div></div></section>
+    <section class="page" id="despensa" hidden><p class="eyebrow">APROVEITE O QUE VOCÊ TEM</p><h1>Minha despensa</h1><p class="lead">Ingredientes organizados, validades à vista.</p><div class="stats" id="pantry-stats"></div><form id="pantry-form" class="panel form"><h2 id="pantry-form-title">Adicionar ingrediente</h2><div class="form-grid"><label>Ingrediente<input name="nome" required maxlength="100" placeholder="Ex.: leite integral"></label><label>Quantidade<input name="quantidade" type="number" min="0.01" max="1000000" step="0.01" value="1" required></label><label>Unidade<select name="unidade"></select></label><label>Data de validade<input name="validade" type="date" required></label></div><div class="actions"><button class="btn" type="submit" id="pantry-save">+ Adicionar à despensa</button><button class="btn btn-ghost" type="button" id="pantry-cancel" hidden>Cancelar edição</button></div></form><div class="section-heading"><h2>Seus ingredientes</h2><label>Mostrar<select id="pantry-filter"><option value="all">Todos</option><option value="soon">Vencem em até 3 dias</option><option value="expired">Vencidos</option><option value="ok">Dentro da validade</option></select></label></div><div class="stack" id="pantry-list"></div></section>
+    <section class="page" id="entrar" hidden><div class="auth-layout"><div class="auth-intro"><p class="eyebrow">BEM-VINDO DE VOLTA</p><h1>Sua próxima receita<br>começa aqui.</h1><p class="lead">Um lugar para suas receitas, seus planos e uma cozinha mais organizada.</p><a class="text-link" href="#receitas">Explorar a demonstração →</a></div><div class="panel"><h2>Entrar no MiniChef</h2><p class="muted">Acesse sua cozinha.</p><form id="login-form" class="form" data-auth><label>E-mail<input name="email" type="email" autocomplete="username" required maxlength="254" placeholder="voce@exemplo.com"></label><label>Senha<div class="password-field"><input id="login-password" name="senha" type="password" autocomplete="current-password" required maxlength="256"><button type="button" data-password="login-password" aria-label="Mostrar senha" aria-pressed="false">Mostrar</button></div></label><button class="btn" type="submit">Entrar</button><p class="status" role="status"></p></form><p class="note">Ainda não tem conta? <a href="#cadastro">Criar conta</a></p><p class="note">Login indisponível nesta demonstração. Nenhuma senha será salva ou enviada.</p></div></div></section>
+    <section class="page" id="cadastro" hidden><a class="back-link" href="#entrar">← Voltar para entrar</a><p class="eyebrow">BEM-VINDO À COZINHA</p><h1>Crie sua conta</h1><p class="lead">Suas receitas e seu planejamento, no mesmo lugar.</p><form id="signup-form" class="panel form wide" data-auth><div class="form-grid"><label class="span-2">Nome completo<input name="nome" autocomplete="name" required maxlength="150"></label><label>E-mail<input name="email" type="email" autocomplete="email" required maxlength="254"></label><label>Data de nascimento<input name="dataNascimento" type="date" autocomplete="bday" required></label><label class="span-2">CPF<input name="cpf" inputmode="numeric" maxlength="14" autocomplete="off" placeholder="000.000.000-00" required aria-describedby="cpf-help"><span class="note" id="cpf-help">11 dígitos, com ou sem pontuação.</span></label><label>Senha<div class="password-field"><input id="signup-password" name="senha" type="password" autocomplete="new-password" minlength="8" maxlength="256" required aria-describedby="password-help"><button type="button" data-password="signup-password" aria-label="Mostrar senha" aria-pressed="false">Mostrar</button></div><span class="note" id="password-help">Use pelo menos 8 caracteres.</span></label><label>Confirmar senha<input name="confirmacaoSenha" type="password" autocomplete="new-password" minlength="8" maxlength="256" required></label></div><p class="note">Cadastro indisponível nesta demonstração. Seus dados não serão salvos nem enviados.</p><button class="btn" type="submit">Criar conta</button><p class="status" role="status"></p></form><details class="panel confirmation"><summary>Já tem um código de confirmação?</summary><form id="confirmation-form" class="form" data-auth><label>Código de 6 dígitos<input name="codigo" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="one-time-code" required></label><p class="note">Na versão conectada, o código recebido por e-mail vale por 10 minutos.</p><button class="btn" type="submit">Confirmar cadastro</button><p class="status" role="status"></p></form></details></section>
+    <section class="page" id="alertas" hidden>
+      <div class="page-heading"><div><p class="eyebrow">DE OLHO NA SUA DESPENSA</p><h1>Alertas de validade</h1><p class="lead">Veja primeiro o que venceu e o que precisa ser usado nos próximos dias.</p></div><a class="btn" href="#despensa">Gerenciar despensa</a></div>
+      <p class="notice">Os alertas usam a data de validade cadastrada na despensa. Itens que vencem hoje ou nos próximos 3 dias aparecem aqui, junto dos vencidos.</p>
+      <p id="expiry-summary" class="muted" role="status"></p>
+      <div id="expiry-list" class="stack"></div>
+    </section>
+    <section class="page" id="sobre" hidden><h1>Sobre o MiniChef</h1><div class="panel reading"><p>O MiniChef ajuda a organizar receitas, planejar refeições e acompanhar os ingredientes da despensa. Feito para quem está começando na cozinha e para quem já vive entre as panelas.</p><h2>Sobre esta demonstração</h2><p>Os exemplos e suas alterações ficam neste navegador. Não há conta conectada nem sincronização entre dispositivos. As telas de cadastro, login e confirmação validam os campos, mas dependem da conexão com o servidor para concluir a operação.</p><p>A aprovação administrativa é uma prévia local, sem concessão de permissões reais.</p></div></section>
+    <footer class="footer"><span class="brand">MiniChef.</span><span>Um pouco de planejamento. Muito mais sabor.</span></footer>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="confirm-dialog" aria-labelledby="confirm-title"><form method="dialog"><h2 id="confirm-title">Remover item?</h2><p id="confirm-message"></p><div class="actions"><button class="btn btn-ghost" value="cancel" autofocus>Cancelar</button><button class="btn danger" value="confirm">Remover</button></div></form></dialog>
+  <button class="tema-btn" id="tema" type="button" aria-label="Alternar entre modo claro e escuro"><svg class="lua" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z" fill="currentColor"/></svg><svg class="sol" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+</body>
+</html>
