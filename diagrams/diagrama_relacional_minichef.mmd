@@ -1,0 +1,97 @@
+---
+title: MiniChef | Diagrama Relacional do MVP (PostgreSQL)
+---
+erDiagram
+    usuario ||--o{ receita : "autor_id (RESTRICT)"
+    usuario |o--o{ receita : "moderador_id (bloqueia)"
+    receita ||--o{ receita_ingrediente : "receita_id (CASCADE)"
+    ingrediente ||--o{ receita_ingrediente : "ingrediente_id (RESTRICT)"
+    usuario ||--o{ planner_semanal : "usuario_id (CASCADE)"
+    planner_semanal ||--o{ item_planner : "planner_id (CASCADE)"
+    receita ||--o{ item_planner : "receita_id (bloqueia)"
+    planner_semanal ||--o{ lista_compras : "planner_id (CASCADE)"
+    lista_compras ||--o{ item_lista_compras : "lista_compras_id (CASCADE)"
+    ingrediente ||--o{ item_lista_compras : "ingrediente_id (bloqueia)"
+
+    usuario {
+        SERIAL id PK "NOT NULL"
+        VARCHAR(120) nome "NOT NULL"
+        VARCHAR(160) email UK "NOT NULL"
+        BOOLEAN email_confirmado "NOT NULL, default FALSE"
+        DATE data_nascimento "NOT NULL"
+        VARCHAR(14) cpf UK "NOT NULL"
+        VARCHAR(255) senha_hash "NOT NULL"
+        VARCHAR(30) tipo_conta "NOT NULL, 8 tipos de conta"
+        VARCHAR(30) perfil_acesso "NOT NULL, comum/moderador/administrador"
+        BOOLEAN ativo "NOT NULL, default TRUE, futuro"
+        VARCHAR(255) foto_perfil_url "NULL, futuro"
+        TIMESTAMP criado_em "NOT NULL, default NOW()"
+    }
+    ingrediente {
+        SERIAL id PK "NOT NULL"
+        VARCHAR(100) nome UK "NOT NULL, único sem diferenciar caixa"
+        VARCHAR(50) categoria "NULL"
+        VARCHAR(20) unidade_padrao "NOT NULL"
+        INTEGER validade_media_dias "NULL, futuro"
+        DECIMAL preco_medio "NULL, (10,2), futuro"
+    }
+    receita {
+        SERIAL id PK "NOT NULL"
+        VARCHAR(150) nome "NOT NULL"
+        INTEGER porcao_padrao "NOT NULL, > 0"
+        VARCHAR(60) refeicao_recomendada "NULL"
+        TEXT modo_preparo "NOT NULL"
+        VARCHAR(60) nacionalidade "NULL"
+        INTEGER tempo_medio_gasto_min "NOT NULL, > 0"
+        VARCHAR(60) finalidade "NULL"
+        DECIMAL orcamento_estimado "NULL, (10,2)"
+        VARCHAR(255) foto_url "NULL, futuro"
+        VARCHAR(255) link_video "NULL, futuro"
+        VARCHAR(20) status "NOT NULL, default Rascunho"
+        TEXT feedback_moderacao "NULL"
+        INTEGER moderador_id FK "NULL, futuro"
+        TIMESTAMP analisado_em "NULL, futuro"
+        INTEGER autor_id FK "NOT NULL"
+        TIMESTAMP criado_em "NOT NULL, default NOW()"
+    }
+    receita_ingrediente {
+        SERIAL id PK "NOT NULL"
+        INTEGER receita_id FK "NOT NULL"
+        INTEGER ingrediente_id FK "NOT NULL"
+        DECIMAL quantidade "NOT NULL, (10,2), > 0"
+        VARCHAR(20) unidade "NOT NULL"
+        VARCHAR(20) papel "NOT NULL, Principal/Secundário/Removível/Opcional"
+        VARCHAR(10) visibilidade "NOT NULL, Público/Privado/Opcional"
+    }
+    planner_semanal {
+        SERIAL id PK "NOT NULL"
+        INTEGER usuario_id FK "NOT NULL"
+        DATE semana_inicio "NOT NULL"
+        DECIMAL orcamento_definido "NULL, (10,2), futuro"
+    }
+    item_planner {
+        SERIAL id PK "NOT NULL"
+        INTEGER planner_id FK "NOT NULL"
+        INTEGER receita_id FK "NOT NULL"
+        VARCHAR(15) dia_semana "NOT NULL, segunda a domingo"
+        VARCHAR(20) refeicao "NOT NULL, Café/Almoço/Jantar/Lanche"
+        INTEGER porcoes_desejadas "NOT NULL, > 0"
+    }
+    lista_compras {
+        SERIAL id PK "NOT NULL"
+        INTEGER planner_id FK "NOT NULL"
+        DECIMAL total_estimado "NULL, (10,2), futuro"
+        TIMESTAMP gerada_em "NOT NULL, default NOW()"
+    }
+    item_lista_compras {
+        SERIAL id PK "NOT NULL"
+        INTEGER lista_compras_id FK "NOT NULL"
+        INTEGER ingrediente_id FK "NOT NULL"
+        DECIMAL quantidade "NOT NULL, (10,2), > 0"
+        VARCHAR(20) unidade "NOT NULL"
+        DECIMAL custo_estimado "NULL, (10,2), futuro"
+        BOOLEAN comprado "NOT NULL, default FALSE"
+    }
+
+    classDef mc fill:#FFFDF6,stroke:#EC5B08,stroke-width:2px,color:#15261B
+    class usuario,ingrediente,receita,receita_ingrediente,planner_semanal,item_planner,lista_compras,item_lista_compras mc
