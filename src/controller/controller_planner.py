@@ -1,130 +1,81 @@
-from conexion.pg_queries import PtgreSQLQueries
-from model.PlannerSemanal import PlannerSemanal
-from controller.controller_usuario import ControllerUsuario
-from controller.controller_receita import ControllerReceita
+from utils.entrada import (ler_inteiro, ler_decimal, ler_data, ler_opcao,
+                           confirmar, escolher_registro)
+
+SQL_LISTA = """SELECT p.id, u.nome AS usuario, p.semana_inicio
+               FROM planner_semanal p JOIN usuario u ON u.id = p.usuario_id
+               ORDER BY p.id"""
+SQL_USUARIOS = "SELECT id, nome, email FROM usuario ORDER BY id"
+SQL_RECEITAS = "SELECT id, nome, porcao_padrao FROM receita ORDER BY id"
+DIAS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"]
+REFEICOES = ["Café da manhã", "Almoço", "Jantar", "Lanche"]
+
 
 class ControllerPlanner:
-    def __init__(self):
-        self.ctrl_usuario = ControllerUsuario()
-        self.ctrl_receita = ControllerReceita()
+    def __init__(self, db):
+        self.db = db
 
-    def planner_existe(self, db: PtgreSQLQueries, id_planner: int) -> bool:
-        """Verifica se o planner semanal existe na base de dados pelo ID."""
-        query = f"SELECT count(1) AS total FROM planner_semanal WHERE id = {id_planner};"
-        resultado = db.sqlToDataFrame(query)
-        return int(resultado['total'].values[0]) > 0
-
-    def buscar_planner_por_id(self, db: PtgreSQLQueries, id_planner: int) -> PlannerSemanal:
-        """Retorna uma instância da classe PlannerSemanal com o objeto Usuario correspondente."""
-        query = f"SELECT id, usuario_id, semana_inicio, orcamento_definido FROM planner_semanal WHERE id = {id_planner};"
-        df = db.sqlToDataFrame(query)
-        if not df.empty:
-            usuario_id = int(df['usuario_id'].values[0])
-            usuario = self.ctrl_usuario.buscar_usuario_por_id(db, usuario_id)
-            return PlannerSemanal(
-                id_planner=int(df['id'].values[0]),
-                usuario=usuario,
-                semana_inicio=str(df['semana_inicio'].values[0]),
-                orcamento_definido=df['orcamento_definido'].values[0]
-            )
-        return None
-
-    def inserir_planner(self) -> PlannerSemanal:
-        db = PtgreSQLQueries(can_write=True)
-
-        print("\n--- INSERIR NOVO PLANNER SEMANAL ---")
-        id_usuario = int(input("Informe o ID do Utilizador dono do planner: "))
-
-        if not self.ctrl_usuario.usuario_existe(db, id_usuario):
-            print(f"Erro: Não existe nenhum utilizador cadastrado com o ID {id_usuario}.")
-            return None
-
-        semana_inicio = input("Data de início da semana (AAAA-MM-DD): ").strip()
-        orcamento = input("Orçamento definido para a semana (opcional): ").strip()
-        orcamento_sql = orcamento.replace(',', '.') if orcamento else "NULL"
-
-        query = f"""
-            INSERT INTO planner_semanal (usuario_id, semana_inicio, orcamento_definido)
-            VALUES ({id_usuario}, '{semana_inicio}', {orcamento_sql})
-            RETURNING id;
-        """
-        resultado = db.write(query)
-        novo_id = resultado[0][0]
-        print(f"Planner semanal criado com sucesso! ID: {novo_id}")
-
-        usuario = self.ctrl_usuario.buscar_usuario_por_id(db, id_usuario)
-        return PlannerSemanal(novo_id, usuario, semana_inicio, orcamento_sql)
-
-    def adicionar_item_planner(self):
-        """Adiciona uma receita agendada a um planner num determinado dia e refeição."""
-        db = PtgreSQLQueries(can_write=True)
-
-        print("\n--- ADICIONAR ITEM AO PLANNER ---")
-        id_planner = int(input("ID do Planner Semanal: "))
-        if not self.planner_existe(db, id_planner):
-            print(f"Erro: Planner ID {id_planner} não existe.")
+    def inserir(self):
+        print("\n--- INSERIR PLANNER SEMANAL ---")
+        usuario = escolher_registro(self.db, "DONO DO PLANNER", SQL_USUARIOS)
+        if usuario is None:
+            print("Cadastre um usuário antes de criar um planner.")
             return
+        semana = ler_data("Início da semana (AAAA-MM-DD): ")
+        orcamento = ler_decimal("Orçamento da semana (ENTER para pular): ", obrigatorio=False)
 
-        id_receita = int(input("ID da Receita a ser agendada: "))
-        if not self.ctrl_receita.receita_existe(db, id_receita):
-            print(f"Erro: Receita ID {id_receita} não existe.")
+        novo = self.db.write(
+            """INSERT INTO planner_semanal (usuario_id, semana_inicio, orcamento_definido)
+               VALUES (%s, %s, %s) RETURNING id""", (usuario, semana, orcamento))
+        id_planner = novo[0][0]
+        print(f"Planner cadastrado com o ID {id_planner}.")
+
+        while confirmar("Planejar uma refeição neste planner?"):
+            receita = escolher_registro(self.db, "RECEITAS", SQL_RECEITAS)
+            if receita is None:
+                break
+            print("Dia da semana:")
+            dia = ler_opcao("Escolha: ", DIAS)
+            print("Refeição:")
+            refeicao = ler_opcao("Escolha: ", REFEICOES)
+            porcoes = ler_inteiro("Quantas porções: ")
+            self.db.write(
+                """INSERT INTO item_planner (planner_id, receita_id, dia_semana, refeicao, porcoes_desejadas)
+                   VALUES (%s, %s, %s, %s, %s)""",
+                (id_planner, receita, dia, refeicao, porcoes))
+            print("Refeição adicionada ao planner.")
+
+    def remover(self):
+        id_planner = escolher_registro(self.db, "PLANNERS", SQL_LISTA)
+        if id_planner is None:
             return
+        itens = int(self.db.sqlToDataFrame(
+            "SELECT count(1) AS total FROM item_planner WHERE planner_id = %s",
+            (id_planner,))["total"][0])
+        listas = int(self.db.sqlToDataFrame(
+            "SELECT count(1) AS total FROM lista_compras WHERE planner_id = %s",
+            (id_planner,))["total"][0])
 
-        print("Dias válidos: 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'")
-        dia_semana = input("Dia da semana: ").strip().lower()
-
-        print("Refeições válidas: 'Café da manhã', 'Almoço', 'Jantar', 'Lanche'")
-        refeicao = input("Refeição: ").strip()
-
-        porcoes = int(input("Porções desejadas para esta refeição: "))
-
-        query = f"""
-            INSERT INTO item_planner (planner_id, receita_id, dia_semana, refeicao, porcoes_desejadas)
-            VALUES ({id_planner}, {id_receita}, '{dia_semana}', '{refeicao}', {porcoes});
-        """
-        db.write(query)
-        print("Item adicionado ao planner semanal com sucesso!")
-
-    def atualizar_planner(self):
-        db = PtgreSQLQueries(can_write=True)
-
-        print("\n--- ATUALIZAR PLANNER SEMANAL ---")
-        id_planner = int(input("Informe o ID do planner que deseja alterar: "))
-
-        if not self.planner_existe(db, id_planner):
-            print(f"Erro: Não foi encontrado nenhum planner com o ID {id_planner}.")
+        if not confirmar(f"Remover o planner {id_planner}?"):
+            print("Remoção cancelada.")
             return
+        if itens or listas:
+            print(f"Ele tem {itens} refeição(ões) e {listas} lista(s) de compras.")
+            if not confirmar("Remover também esses registros?"):
+                print("Remoção cancelada: o planner está em uso.")
+                return
+        # refeições e listas saem junto (ON DELETE CASCADE)
+        self.db.write("DELETE FROM planner_semanal WHERE id = %s", (id_planner,))
+        print("Planner removido.")
 
-        nova_data_inicio = input("Nova Data de Início (AAAA-MM-DD): ").strip()
-        novo_orcamento = input("Novo Orçamento Definido: ").strip()
-        orcamento_sql = novo_orcamento.replace(',', '.') if novo_orcamento else "NULL"
-
-        query_update = f"""
-            UPDATE planner_semanal 
-            SET semana_inicio = '{nova_data_inicio}', 
-                orcamento_definido = {orcamento_sql}
-            WHERE id = {id_planner};
-        """
-        db.write(query_update)
-
-        planner_atualizado = self.buscar_planner_por_id(db, id_planner)
-        print("\nRegisto Atualizado:")
-        print(planner_atualizado.to_string())
-
-    def excluir_planner(self):
-        db = PtgreSQLQueries(can_write=True)
-
-        print("\n--- REMOVER PLANNER SEMANAL ---")
-        id_planner = int(input("Informe o ID do planner que deseja remover: "))
-
-        if not self.planner_existe(db, id_planner):
-            print(f"Erro: Não foi encontrado nenhum planner com o ID {id_planner}.")
+    def atualizar(self):
+        id_planner = escolher_registro(self.db, "PLANNERS", SQL_LISTA)
+        if id_planner is None:
             return
-
-        confirmacao = input(f"Tem a certeza de que deseja eliminar o planner ID {id_planner}? Os itens agendados e a lista de compras associados serão eliminados em cascata. (S/N): ").strip().upper()
-        if confirmacao == 'S':
-            query_delete = f"DELETE FROM planner_semanal WHERE id = {id_planner};"
-            db.write(query_delete)
-            print("Planner semanal eliminado com sucesso!")
-        else:
-            print("Operação cancelada.")
+        semana = ler_data("Nova data de início (AAAA-MM-DD): ")
+        orcamento = ler_decimal("Novo orçamento (ENTER para vazio): ", obrigatorio=False)
+        self.db.write(
+            "UPDATE planner_semanal SET semana_inicio = %s, orcamento_definido = %s WHERE id = %s",
+            (semana, orcamento, id_planner))
+        print("\nRegistro atualizado:")
+        print(self.db.sqlToDataFrame(
+            "SELECT * FROM planner_semanal WHERE id = %s", (id_planner,)).to_string(index=False))

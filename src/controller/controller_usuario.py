@@ -1,128 +1,94 @@
-from conexion.pg_queries import PtgreSQLQueries
-from model.Usuario import Usuario
+from utils.entrada import ler_texto, ler_data, ler_opcao, confirmar, escolher_registro
+from utils.seguranca import gerar_hash_senha
+
+TIPOS_CONTA = [
+    "Usuário comum", "Chef de cozinha", "Hotel", "Restaurante",
+    "Personal Trainer", "Nutricionista", "Administrador de eventos", "Mercado",
+]
+SQL_LISTA = "SELECT id, nome, email FROM usuario ORDER BY id"
+
 
 class ControllerUsuario:
-    def __init__(self):
-        pass
+    def __init__(self, db):
+        self.db = db
 
-    def usuario_existe(self, db: PtgreSQLQueries, id_usuario: int) -> bool:
-        """Verifica se o utilizador existe na base de dados pelo ID."""
-        query = f"SELECT count(1) AS total FROM usuario WHERE id = {id_usuario};"
-        resultado = db.sqlToDataFrame(query)
-        return int(resultado['total'].values[0]) > 0
+    def _existe(self, coluna: str, valor: str) -> bool:
+        df = self.db.sqlToDataFrame(
+            f"SELECT count(1) AS total FROM usuario WHERE LOWER({coluna}) = LOWER(%s)", (valor,))
+        return int(df["total"][0]) > 0
 
-    def usuario_existe_por_email(self, db: PtgreSQLQueries, email: str) -> bool:
-        """Verifica se já existe um utilizador registado com o mesmo e-mail."""
-        query = f"SELECT count(1) AS total FROM usuario WHERE LOWER(email) = LOWER('{email}');"
-        resultado = db.sqlToDataFrame(query)
-        return int(resultado['total'].values[0]) > 0
+    def inserir(self):
+        print("\n--- INSERIR USUÁRIO ---")
+        nome = ler_texto("Nome: ")
+        email = ler_texto("E-mail: ")
+        if self._existe("email", email):
+            print("Já existe um usuário com esse e-mail.")
+            return
+        data_nascimento = ler_data("Data de nascimento (AAAA-MM-DD): ")
+        cpf = ler_texto("CPF (000.000.000-00): ")
+        if self._existe("cpf", cpf):
+            print("Já existe um usuário com esse CPF.")
+            return
+        senha = ler_texto("Senha: ")
+        print("Tipo de conta:")
+        tipo = ler_opcao("Escolha: ", TIPOS_CONTA)
 
-    def usuario_existe_por_cpf(self, db: PtgreSQLQueries, cpf: str) -> bool:
-        """Verifica se já existe um utilizador registado com o mesmo CPF."""
-        query = f"SELECT count(1) AS total FROM usuario WHERE cpf = '{cpf}';"
-        resultado = db.sqlToDataFrame(query)
-        return int(resultado['total'].values[0]) > 0
+        novo = self.db.write(
+            """INSERT INTO usuario (nome, email, data_nascimento, cpf, senha_hash, tipo_conta)
+               VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
+            (nome, email, data_nascimento, cpf, gerar_hash_senha(senha), tipo))
+        print(f"Usuário cadastrado com o ID {novo[0][0]}.")
 
-    def buscar_usuario_por_id(self, db: PtgreSQLQueries, id_usuario: int) -> Usuario:
-        """Retorna uma instância da classe Usuario com base no ID."""
-        query = f"SELECT id, nome, email, tipo_conta FROM usuario WHERE id = {id_usuario};"
-        df = db.sqlToDataFrame(query)
-        if not df.empty:
-            return Usuario(
-                id_usuario=int(df['id'].values[0]),
-                nome=str(df['nome'].values[0]),
-                email=str(df['email'].values[0]),
-                tipo_conta=str(df['tipo_conta'].values[0])
-            )
-        return None
+    def remover(self):
+        id_usuario = escolher_registro(self.db, "USUÁRIOS", SQL_LISTA)
+        if id_usuario is None:
+            return
+        receitas = self.db.sqlToDataFrame(
+            "SELECT count(1) AS total FROM receita WHERE autor_id = %s", (id_usuario,))
+        planners = self.db.sqlToDataFrame(
+            "SELECT count(1) AS total FROM planner_semanal WHERE usuario_id = %s", (id_usuario,))
+        total_receitas, total_planners = int(receitas["total"][0]), int(planners["total"][0])
 
-    def inserir_usuario(self) -> Usuario:
-        db = PtgreSQLQueries(can_write=True)
-
-        print("\n--- INSERIR NOVO UTILIZADOR ---")
-        email = input("E-mail do utilizador: ").strip()
-
-        # Validação de existência para manter a integridade
-        if self.usuario_existe_por_email(db, email):
-            print(f"Erro: Já existe um utilizador registado com o e-mail '{email}'.")
-            return None
-
-        cpf = input("CPF do utilizador (ex: 123.456.789-00): ").strip()
-        if self.usuario_existe_por_cpf(db, cpf):
-            print(f"Erro: Já existe um utilizador registado com o CPF '{cpf}'.")
-            return None
-
-        nome = input("Nome do utilizador: ").strip()
-        data_nascimento = input("Data de Nascimento (AAAA-MM-DD): ").strip()
-        senha = input("Palavra-passe (hash/texto): ").strip()
-        
-        print("Tipos de Conta disponíveis: 'Usuário comum', 'Chef de cozinha', 'Hotel', 'Restaurante', 'Personal Trainer', 'Nutricionista', 'Administrador de eventos', 'Mercado'")
-        tipo_conta = input("Tipo de Conta: ").strip() or "Usuário comum"
-
-        query = f"""
-            INSERT INTO usuario (nome, email, data_nascimento, cpf, senha_hash, tipo_conta)
-            VALUES ('{nome}', '{email}', '{data_nascimento}', '{cpf}', '{senha}', '{tipo_conta}')
-            RETURNING id;
-        """
-        resultado = db.write(query)
-        novo_id = resultado[0][0]
-        print(f"Utilizador '{nome}' registado com sucesso! ID: {novo_id}")
-        
-        return Usuario(novo_id, nome, email, tipo_conta)
-
-    def atualizar_usuario(self):
-        db = PtgreSQLQueries(can_write=True)
-
-        print("\n--- ATUALIZAR UTILIZADOR ---")
-        id_usuario = int(input("Informe o ID do utilizador que deseja alterar: "))
-
-        if not self.usuario_existe(db, id_usuario):
-            print(f"Erro: Não foi encontrado nenhum utilizador com o ID {id_usuario}.")
+        if not confirmar(f"Remover o usuário {id_usuario}?"):
+            print("Remoção cancelada.")
             return
 
-        novo_nome = input("Novo Nome: ").strip()
-        novo_email = input("Novo E-mail: ").strip()
-        novo_tipo = input("Novo Tipo de Conta: ").strip()
+        comandos = []
+        if total_receitas or total_planners:
+            print(f"Esse usuário tem {total_receitas} receita(s) e {total_planners} planner(s).")
+            if not confirmar("Remover também esses registros?"):
+                print("Remoção cancelada: o usuário continua sendo usado por outras tabelas.")
+                return
+            comandos += [
+                ("DELETE FROM item_planner WHERE receita_id IN (SELECT id FROM receita WHERE autor_id = %s)", (id_usuario,)),
+                ("DELETE FROM receita WHERE autor_id = %s", (id_usuario,)),
+            ]
+        # moderador_id não tem ON DELETE, então precisa ser limpo antes
+        comandos += [
+            ("UPDATE receita SET moderador_id = NULL WHERE moderador_id = %s", (id_usuario,)),
+            ("DELETE FROM usuario WHERE id = %s", (id_usuario,)),
+        ]
+        self.db.write_many(comandos)
+        print("Usuário removido.")
 
-        query_update = f"""
-            UPDATE usuario 
-            SET nome = '{novo_nome}', 
-                email = '{novo_email}', 
-                tipo_conta = '{novo_tipo}'
-            WHERE id = {id_usuario};
-        """
-        db.write(query_update)
-
-        # Exibe o registo atualizado
-        usuario_atualizado = self.buscar_usuario_por_id(db, id_usuario)
-        print("\nRegisto Atualizado:")
-        print(usuario_atualizado.to_string())
-
-    def excluir_usuario(self):
-        db = PtgreSQLQueries(can_write=True)
-
-        print("\n--- REMOVER UTILIZADOR ---")
-        id_usuario = int(input("Informe o ID do utilizador que deseja remover: "))
-
-        if not self.usuario_existe(db, id_usuario):
-            print(f"Erro: Não foi encontrado nenhum utilizador com o ID {id_usuario}.")
+    def atualizar(self):
+        id_usuario = escolher_registro(self.db, "USUÁRIOS", SQL_LISTA)
+        if id_usuario is None:
             return
-
-        # Verificação de Chave Estrangeira (FK) nas tabelas dependentes
-        query_fk_receita = f"SELECT count(1) AS total FROM receita WHERE autor_id = {id_usuario};"
-        query_fk_planner = f"SELECT count(1) AS total FROM planner_semanal WHERE usuario_id = {id_usuario};"
-
-        total_receitas = int(db.sqlToDataFrame(query_fk_receita)['total'].values[0])
-        total_planners = int(db.sqlToDataFrame(query_fk_planner)['total'].values[0])
-
-        if total_receitas > 0 or total_planners > 0:
-            print(f"Erro: O utilizador ID {id_usuario} não pode ser removido pois possui {total_receitas} receita(s) e {total_planners} planner(s) associado(s).")
+        print("Informe os novos dados (a senha e o CPF não mudam aqui).")
+        nome = ler_texto("Novo nome: ")
+        email = ler_texto("Novo e-mail: ")
+        outro = self.db.sqlToDataFrame(
+            "SELECT count(1) AS total FROM usuario WHERE LOWER(email) = LOWER(%s) AND id <> %s",
+            (email, id_usuario))
+        if int(outro["total"][0]) > 0:
+            print("Esse e-mail já pertence a outro usuário.")
             return
+        tipo = ler_opcao("Novo tipo de conta: ", TIPOS_CONTA)
 
-        confirmacao = input(f"Tem a certeza de que deseja remover o utilizador ID {id_usuario}? (S/N): ").strip().upper()
-        if confirmacao == 'S':
-            query_delete = f"DELETE FROM usuario WHERE id = {id_usuario};"
-            db.write(query_delete)
-            print("Utilizador removido com sucesso!")
-        else:
-            print("Operação cancelada.")
+        self.db.write("UPDATE usuario SET nome = %s, email = %s, tipo_conta = %s WHERE id = %s",
+                      (nome, email, tipo, id_usuario))
+        print("\nRegistro atualizado:")
+        print(self.db.sqlToDataFrame(
+            "SELECT id, nome, email, tipo_conta FROM usuario WHERE id = %s", (id_usuario,)
+        ).to_string(index=False))

@@ -1,116 +1,81 @@
-from conexion.pg_queries import PtgreSQLQueries  # Classe de conexão PostgreSQL do seu projeto
-from model.Ingrediente import Ingrediente
+from utils.entrada import ler_texto, ler_inteiro, ler_decimal, confirmar, escolher_registro
+
+SQL_LISTA = "SELECT id, nome, categoria, unidade_padrao FROM ingrediente ORDER BY id"
+
 
 class ControllerIngrediente:
-    def __init__(self):
-        pass
+    def __init__(self, db):
+        self.db = db
 
-    def ingrediente_existe(self, db: PtgreSQLQueries, id_ingrediente: int) -> bool:
-        """Verifica se o ingrediente existe na base de dados pelo ID."""
-        query = f"SELECT count(1) AS total FROM ingrediente WHERE id = {id_ingrediente};"
-        resultado = db.sqlToDataFrame(query)
-        return int(resultado['total'].values[0]) > 0
+    def _nome_em_uso(self, nome: str, ignorar_id: int = 0) -> bool:
+        df = self.db.sqlToDataFrame(
+            "SELECT count(1) AS total FROM ingrediente WHERE LOWER(nome) = LOWER(%s) AND id <> %s",
+            (nome, ignorar_id))
+        return int(df["total"][0]) > 0
 
-    def ingrediente_existe_por_nome(self, db: PtgreSQLQueries, nome: str) -> bool:
-        """Verifica se já existe um ingrediente com o mesmo nome (case-insensitive)."""
-        query = f"SELECT count(1) AS total FROM ingrediente WHERE LOWER(nome) = LOWER('{nome}');"
-        resultado = db.sqlToDataFrame(query)
-        return int(resultado['total'].values[0]) > 0
+    def inserir(self):
+        print("\n--- INSERIR INGREDIENTE ---")
+        nome = ler_texto("Nome: ")
+        if self._nome_em_uso(nome):
+            print("Já existe um ingrediente com esse nome.")
+            return
+        categoria = ler_texto("Categoria (ex.: vegetal, laticínio): ", obrigatorio=False) or None
+        unidade = ler_texto("Unidade padrão (g, ml, unidade...): ")
+        validade = ler_inteiro("Validade média em dias (ENTER se não souber): ", obrigatorio=False)
+        preco = ler_decimal("Preço médio (ENTER se não souber): ", obrigatorio=False)
 
-    def inserir_ingrediente(self) -> Ingrediente:
-        db = PtgreSQLQueries(can_write=True)
+        novo = self.db.write(
+            """INSERT INTO ingrediente (nome, categoria, unidade_padrao, validade_media_dias, preco_medio)
+               VALUES (%s, %s, %s, %s, %s) RETURNING id""",
+            (nome, categoria, unidade, validade, preco))
+        print(f"Ingrediente cadastrado com o ID {novo[0][0]}.")
 
-        print("\n--- INSERIR NOVO INGREDIENTE ---")
-        nome = input("Nome do ingrediente: ").strip()
+    def remover(self):
+        id_ingrediente = escolher_registro(self.db, "INGREDIENTES", SQL_LISTA)
+        if id_ingrediente is None:
+            return
+        em_receitas = int(self.db.sqlToDataFrame(
+            "SELECT count(1) AS total FROM receita_ingrediente WHERE ingrediente_id = %s",
+            (id_ingrediente,))["total"][0])
+        em_listas = int(self.db.sqlToDataFrame(
+            "SELECT count(1) AS total FROM item_lista_compras WHERE ingrediente_id = %s",
+            (id_ingrediente,))["total"][0])
 
-        # Validação de existência para manter a integridade
-        if self.ingrediente_existe_por_nome(db, nome):
-            print(f"Erro: Já existe um ingrediente cadastrado com o nome '{nome}'.")
-            return None
-
-        categoria = input("Categoria (ex: Vegetal, Laticínio): ").strip()
-        unidade_padrao = input("Unidade padrão (ex: kg, g, ml, un): ").strip()
-        validade_dias = input("Validade média em dias (pressione ENTER se nulo): ").strip()
-        preco_medio = input("Preço médio (pressione ENTER se nulo): ").strip()
-
-        val_sql = validade_dias if validade_dias.isdigit() else "NULL"
-        preco_sql = preco_medio.replace(',', '.') if preco_medio else "NULL"
-
-        # Concatenação da instrução SQL sem ORM
-        query = f"""
-            INSERT INTO ingrediente (nome, categoria, unidade_padrao, validade_media_dias, preco_medio)
-            VALUES ('{nome}', '{categoria}', '{unidade_padrao}', {val_sql}, {preco_sql})
-            RETURNING id, nome, categoria, unidade_padrao, validade_media_dias, preco_medio;
-        """
-        
-        resultado = db.write(query)
-        print("Ingrediente cadastrado com sucesso!")
-        
-        # Retorna a instância criada usando a classe do modelo
-        novo_id = resultado[0][0]
-        return Ingrediente(novo_id, nome, categoria, unidade_padrao, val_sql, preco_sql)
-
-    def atualizar_ingrediente(self):
-        db = PtgreSQLQueries(can_write=True)
-
-        print("\n--- ATUALIZAR INGREDIENTE ---")
-        id_ingrediente = int(input("Informe o ID do ingrediente que deseja alterar: "))
-
-        # Verifica se o registo existe antes de alterar
-        if not self.ingrediente_existe(db, id_ingrediente):
-            print(f"Erro: Não foi encontrado nenhum ingrediente com o ID {id_ingrediente}.")
+        if not confirmar(f"Remover o ingrediente {id_ingrediente}?"):
+            print("Remoção cancelada.")
             return
 
-        novo_nome = input("Novo Nome: ").strip()
-        nova_categoria = input("Nova Categoria: ").strip()
-        nova_unidade = input("Nova Unidade Padrão: ").strip()
+        comandos = []
+        if em_receitas or em_listas:
+            print(f"Ele aparece em {em_receitas} receita(s) e {em_listas} item(ns) de lista de compras.")
+            if not confirmar("Remover também esses registros?"):
+                print("Remoção cancelada: o ingrediente está em uso.")
+                return
+            comandos += [
+                ("DELETE FROM receita_ingrediente WHERE ingrediente_id = %s", (id_ingrediente,)),
+                ("DELETE FROM item_lista_compras WHERE ingrediente_id = %s", (id_ingrediente,)),
+            ]
+        comandos.append(("DELETE FROM ingrediente WHERE id = %s", (id_ingrediente,)))
+        self.db.write_many(comandos)
+        print("Ingrediente removido.")
 
-        query_update = f"""
-            UPDATE ingrediente 
-            SET nome = '{novo_nome}', 
-                categoria = '{nova_categoria}', 
-                unidade_padrao = '{nova_unidade}'
-            WHERE id = {id_ingrediente};
-        """
-        db.write(query_update)
-
-        # Recupera e exibe o registo atualizado
-        query_select = f"SELECT id, nome, categoria, unidade_padrao, validade_media_dias, preco_medio FROM ingrediente WHERE id = {id_ingrediente};"
-        df = db.sqlToDataFrame(query_select)
-        
-        ingrediente_atualizado = Ingrediente(
-            df['id'].values[0], df['nome'].values[0], df['categoria'].values[0],
-            df['unidade_padrao'].values[0], df['validade_media_dias'].values[0], df['preco_medio'].values[0]
-        )
-        
-        print("\nRegisto Atualizado:")
-        print(ingrediente_atualizado.to_string())
-
-    def excluir_ingrediente(self):
-        db = PtgreSQLQueries(can_write=True)
-
-        print("\n--- REMOVER INGREDIENTE ---")
-        id_ingrediente = int(input("Informe o ID do ingrediente que deseja remover: "))
-
-        if not self.ingrediente_existe(db, id_ingrediente):
-            print(f"Erro: Não foi encontrado nenhum ingrediente com o ID {id_ingrediente}.")
+    def atualizar(self):
+        id_ingrediente = escolher_registro(self.db, "INGREDIENTES", SQL_LISTA)
+        if id_ingrediente is None:
             return
-
-        # Verificação de Chave Estrangeira (FK) nas tabelas dependentes
-        query_fk_receita = f"SELECT count(1) AS total FROM receita_ingrediente WHERE ingrediente_id = {id_ingrediente};"
-        query_fk_lista = f"SELECT count(1) AS total FROM item_lista_compras WHERE ingrediente_id = {id_ingrediente};"
-        
-        total_receitas = int(db.sqlToDataFrame(query_fk_receita)['total'].values[0])
-        total_listas = int(db.sqlToDataFrame(query_fk_lista)['total'].values[0])
-
-        if total_receitas > 0 or total_listas > 0:
-            print(f"Erro: O ingrediente ID {id_ingrediente} não pode ser removido pois está associado a receitas ou listas de compras existentes.")
+        nome = ler_texto("Novo nome: ")
+        if self._nome_em_uso(nome, id_ingrediente):
+            print("Já existe outro ingrediente com esse nome.")
             return
+        categoria = ler_texto("Nova categoria: ", obrigatorio=False) or None
+        unidade = ler_texto("Nova unidade padrão: ")
+        validade = ler_inteiro("Nova validade média em dias (ENTER para vazio): ", obrigatorio=False)
+        preco = ler_decimal("Novo preço médio (ENTER para vazio): ", obrigatorio=False)
 
-        confirmacao = input(f"Tem a certeza de que deseja remover o ingrediente ID {id_ingrediente}? (S/N): ").strip().upper()
-        if confirmacao == 'S':
-            query_delete = f"DELETE FROM ingrediente WHERE id = {id_ingrediente};"
-            db.write(query_delete)
-            print("Ingrediente removido com sucesso!")
-        else:
-            print("Operação cancelada.")
+        self.db.write(
+            """UPDATE ingrediente SET nome = %s, categoria = %s, unidade_padrao = %s,
+                      validade_media_dias = %s, preco_medio = %s WHERE id = %s""",
+            (nome, categoria, unidade, validade, preco, id_ingrediente))
+        print("\nRegistro atualizado:")
+        print(self.db.sqlToDataFrame(
+            "SELECT * FROM ingrediente WHERE id = %s", (id_ingrediente,)).to_string(index=False))

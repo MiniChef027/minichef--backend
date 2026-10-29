@@ -1,14 +1,13 @@
 import os
-from conexion.pg_queries import PtgreSQLQueries # Ajuste para a sua classe de conexão
 
 class Relatorios:
-    def __init__(self):
-        # Inicia a conexão à base de dados no modo leitura
-        self.db = PtgreSQLQueries(can_write=False)
+    def __init__(self, db):
+        self.db = db
 
     def ler_ficheiro_sql(self, nome_ficheiro: str) -> str:
         """Abre o ficheiro SQL localizado na pasta src/sql/ e retorna o seu conteúdo como texto."""
-        caminho_ficheiro = os.path.join("src", "sql", nome_ficheiro)
+        pasta_sql = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sql")
+        caminho_ficheiro = os.path.join(pasta_sql, nome_ficheiro)
         try:
             with open(caminho_ficheiro, 'r', encoding='utf-8') as file:
                 return file.read()
