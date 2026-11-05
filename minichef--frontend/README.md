@@ -29,6 +29,10 @@ A barra superior preserva o fundo verde e as figuras originais de comidas e uten
 
 A especificação detalhada de cada UC não estava no repositório. Os números acima seguem o agrupamento informado no pedido; as regras de porções e compras seguem `docs/BANCO_DE_DADOS.md`.
 
+## Imagens e ícones
+
+As receitas usam ilustrações próprias em SVG (`img/receitas/`, sem rede e sem licença externa). As cinco receitas de exemplo têm uma imagem cada; as receitas criadas pelo usuário usam `fallback.svg`. Para trocar por fotos, substitua os arquivos mantendo os nomes (ou ajuste o mapa `photos` em `js/app.js`). Os ícones do menu são SVG inline (sprite no início de `index.html`).
+
 ## Limites da demonstração
 
 - O backend disponível contém classes, sem API HTTP. Nenhuma chamada de rede é feita pelo aplicativo e nenhuma operação é gravada no servidor.

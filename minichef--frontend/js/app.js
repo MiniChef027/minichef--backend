@@ -70,6 +70,14 @@
   function input(type, name, value, attrs = {}) { const node = el('input'); node.type = type; node.name = name; node.value = value; Object.entries(attrs).forEach(([key, val]) => node.setAttribute(key, val)); return node; }
   function select(name, values, value) { const node = el('select'); node.name = name; options(node, values); if (value) node.value = value; return node; }
   function stat(value, label, href) { const node = el(href ? 'a' : 'div', 'stat'); if (href) node.href = href; node.append(el('strong', '', value), el('span', 'muted', label)); return node; }
+  function icon(name) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'), use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    svg.setAttribute('class', 'ico'); svg.setAttribute('aria-hidden', 'true'); use.setAttribute('href', `#i-${name}`); svg.append(use); return svg;
+  }
+  const photos = { 'exemplo-1': 'arroz', 'exemplo-2': 'feijao', 'exemplo-3': 'frango', 'exemplo-4': 'omelete', 'exemplo-5': 'panqueca' };
+  function picture(recipe, cls, alt) {
+    const img = el('img', cls); img.src = `img/receitas/${photos[recipe.id] || 'fallback'}.svg`; img.alt = alt; img.loading = 'lazy'; img.width = 480; img.height = 300; return img;
+  }
   function badge(text) { return el('span', 'badge', text); }
   function published() { return state.recipes.filter(r => r.status === 'Publicada'); }
   function weekEntries() { return state.planner.filter(item => item.semana === week); }
@@ -91,11 +99,11 @@
   }
   function steps(recipe) { const list = el('ol', 'steps'); recipe.modo_preparo.split('\n').filter(line => line.trim()).forEach(line => list.append(el('li', '', line))); return list; }
   function recipeCard(recipe) {
-    const card = el('article', 'card recipe-card');
-    const top = el('div', 'recipe-top'); top.append(badge(recipe.refeicao_recomendada));
+    const card = el('article', 'card recipe-card'); card.dataset.meal = recipe.refeicao_recomendada;
+    card.append(picture(recipe, 'recipe-img', '')); const top = el('div', 'recipe-top'); top.append(badge(recipe.refeicao_recomendada));
     if (recipe.status === 'Publicada') {
       const favorite = state.favorites.includes(recipe.id);
-      const toggle = button(favorite ? '♥' : '♡', () => {
+      const toggle = button('', () => {
         const section = toggle.closest('.page');
         state.favorites = favorite ? state.favorites.filter(id => id !== recipe.id) : [...state.favorites, recipe.id];
         save(); renderRecipes(); renderFavorites(); renderHome();
@@ -104,12 +112,12 @@
         toast(favorite ? 'Receita removida dos favoritos.' : 'Receita adicionada aos favoritos.');
       }, 'favorite-btn');
       toggle.setAttribute('aria-label', `${favorite ? 'Remover dos' : 'Adicionar aos'} favoritos: ${recipe.nome}`);
-      toggle.setAttribute('aria-pressed', favorite); top.append(toggle);
+      toggle.setAttribute('aria-pressed', favorite); toggle.append(icon('heart')); top.append(toggle);
       toggle.dataset.recipeId = recipe.id;
     } else top.append(badge(recipe.status));
     const title = el('h3'); title.append(link(recipe.nome, `#detalhe/${encodeURIComponent(recipe.id)}`, 'recipe-link'));
     card.append(top, title, el('p', 'muted recipe-summary', recipe.ingredientes.slice(0, 3).map(i => i.nome).join(', ')), el('p', 'meta', `${recipe.tempo_medio_gasto_min} min · ${recipe.porcao_padrao} ${recipe.porcao_padrao === 1 ? 'porção' : 'porções'} · ${recipe.nacionalidade || 'Origem não informada'}`));
-    const actions = el('div', 'card-actions'); actions.append(link('Ver receita →', `#detalhe/${encodeURIComponent(recipe.id)}`, 'text-link'));
+    const actions = el('div', 'card-actions'); actions.append(link('Ver receita', `#detalhe/${encodeURIComponent(recipe.id)}`, 'text-link'));
     if (recipe.propria && recipe.status !== 'Publicada') actions.append(link('Editar', `#nova-receita/${encodeURIComponent(recipe.id)}`, 'text-link'));
     card.append(actions); return card;
   }
@@ -137,7 +145,7 @@
     $('#detalhe h1').textContent = recipe ? recipe.nome : 'Receita não encontrada';
     if (!recipe) { empty(target, 'Esta receita não está disponível', 'Volte à coleção para escolher outra receita.', '#receitas', 'Explorar receitas'); return; }
     const panel = el('div', 'panel');
-    panel.append(badge(recipe.status), el('p', 'meta', `${recipe.refeicao_recomendada} · ${recipe.tempo_medio_gasto_min} min · ${recipe.porcao_padrao} porções`));
+    panel.append(picture(recipe, 'detail-img', `Ilustração de ${recipe.nome}`), badge(recipe.status), el('p', 'meta', `${recipe.refeicao_recomendada} · ${recipe.tempo_medio_gasto_min} min · ${recipe.porcao_padrao} porções`));
     if (recipe.feedback_moderacao) panel.append(el('p', 'notice', `Retorno da análise: ${recipe.feedback_moderacao}`));
     panel.append(el('h2', '', 'Ingredientes'), ingredientTable(recipe.ingredientes, 'Ingredientes da receita base'), el('h2', '', 'Modo de preparo'), steps(recipe));
     const actions = el('div', 'actions');
@@ -219,7 +227,7 @@
   function renderPlanner() {
     $('#week-label').textContent = period();
     $('#week-grid').replaceChildren(...days.map((day, index) => {
-      const panel = el('article', 'day-card'); panel.append(el('h3', '', day), el('p', 'note', date(M.addDays(week, index))));
+      const panel = el('article', 'day-card'); if (M.addDays(week, index) === M.dateKey()) panel.classList.add('today'); panel.append(el('h3', '', day), el('p', 'note', date(M.addDays(week, index))));
       const items = weekEntries().filter(i => i.dia === index).sort((a, b) => M.meals.indexOf(a.refeicao) - M.meals.indexOf(b.refeicao));
       items.forEach(item => {
         const recipe = state.recipes.find(r => r.id === item.receita_id), block = el('div', 'planned-meal');
@@ -247,7 +255,13 @@
     $('#shopping-week').textContent = `Semana de ${period()}`;
     const list = M.shopping(state.recipes, weekEntries());
     const key = item => `${week}|${item.key}|${item.quantidade}`;
-    const progress = () => { $('#shopping-progress').textContent = `${list.filter(i => state.checked[key(i)]).length} de ${list.length} itens comprados`; };
+    const progress = () => {
+      const done = list.filter(i => state.checked[key(i)]).length, all = list.length && done === list.length;
+      $('#shopping-progress').textContent = `${done} de ${list.length} itens comprados`;
+      $('#shopping-bar').style.width = `${list.length ? Math.round(done / list.length * 100) : 0}%`;
+      const old = $('#shopping-done'); if (old) old.remove();
+      if (all) { const note = el('div', 'celebrate'); note.id = 'shopping-done'; note.append(el('strong', '', 'Compras completas. Hora de cozinhar.')); $('#shopping-progress').before(note); }
+    };
     $('#shopping-list').replaceChildren(...list.map(item => {
       const label = el('label', 'shopping-item'); const check = input('checkbox', 'comprado', item.key); check.checked = !!state.checked[key(item)];
       label.classList.toggle('is-checked', check.checked);
